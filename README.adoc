@@ -1,0 +1,93 @@
+= FMP7 mode
+
+generic-modeを利用して作成した http://guu.fmp.jp/archives/493[FMP7 FM/SSG/PCM音源ドライバ]
+用のちっちゃなメジャーモードです。
+
+== できる事
+* エイリアス名やループ命令、パート名、曲コメント等に色が付いて見易くなります。
+* MML保存からコンパイル、曲の再生までを1コマンドで実行します。
+
+== 使い方
+fmp7-modeを使用する為には https://www.gnu.org/software/emacs/[emacs] が必要です。
+
+=== インストール方法
+
+今のところインストーラーは用意していません。emacs の load-pathに
+設定されているパスのどれかに fmp7-mode.el をコピーして下さい。
+
+そして emacs のコンフィグ に `(autoload 'fmp7-mode "fmp7-mode" nil t)` と
+`(add-to-list 'auto-mode-alist '("\\.mml$" . fmp7-mode))` を追記します。
+
+=== キーバインド
+
+fmp7-mode用に2つのキーバインドが設定されています。
+
+* C-c C-c  
+現在のバッファを保存して、MMLコンパイラを呼び出します。コンパイル後に
+自動再生する設定になっている場合は、コンパイルが正常終了していれば
+再生します。
+* C-c C-p
+コンパイル後のファイルを再生します。バッファを保存したり、MMLコンパイラ
+を呼び出したりはしません。ファイルの存在も確認しないため、もしファイルが
+無い場合は再生プログラム側でエラーになるでしょう。
+
+== カスタマイズ変数
+
+以下のカスタマイズ変数を用意しています。
+
+=== fmp7-mode-hook
+fmp7-mode起動時に実行されるフック変数です。
+
+=== fmp7-after-compile-hook
+MMLコンパイルが正常終了したときに実行されるフック変数です。
+
+=== fmp7-compile-program-name
+MMLのコンパイルに使用するプログラム名です。オプションは次のカスタマイズ
+変数で設定します。
+
+=== fmp7-compile-program-options
+fmp7-compile-program-name で指定したプログラムに渡すオプションを文字列の
+リストで設定します。
+
+=== fmp7-player-program-name
+コンパイルしたファイルを再生するプログラム名です。オプションは次の
+カスタマイズ変数で設定します。コンパイル後に自動で再生したくない場合は
+後述の fmp7-play-after-compile をnilに設定します。
+
+=== fmp7-player-program-options
+fmp7-player-program-name で指定したプログラムに渡すオプションを文字列の
+リストで設定します。
+
+=== fmp7-play-after-compile
+nil以外を指定すると、MMLコンパイル後に自動で fmp7-player-program-name に
+設定したプログラムを呼び出して再生します。
+
+=== fmp7-normalize-filename-function
+fmp7-compile-program-name や fmp7-player-program-name で指定したプログラムにファイル名を渡す前に
+ここで指定した関数でファイル名を整形します。
+WSL上で動作するemacsを使用するとき等に設定します。
+デフォルト値は `convert-standard-filename` です。
+
+== 設定サンプル
+
+----
+(autoload 'fmp7-mode "fmp7-mode" nil t)
+(add-to-list 'auto-mode-alist '("\\.mwi$" . fmp7-mode))
+(setq fmp7-compile-program-name "fmc7c.exe")
+(setq fmp7-compile-program-options '("-c"))
+(setq fmp7-player-program-name "/mnt/d/tools/FMP7/FMP7.exe")
+(setq fmp7-player-program-options nil)
+(setq fmp7-play-after-compile t)
+(setq pmd-normalize-filename-function
+      (lambda (path)
+        (let ((buffer (generate-new-buffer " *wslpath* ")))
+          (unwind-protect
+            (progn
+              (with-current-buffer buffer
+                (erase-buffer)
+                (call-process "wslpath" nil buffer nil
+                              "-m" path)
+                (delete-backward-char 1 nil)
+                (buffer-string)))
+            (kill-buffer buffer)))))
+----
